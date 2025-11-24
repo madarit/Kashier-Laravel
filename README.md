@@ -203,15 +203,7 @@ laravel-kashier/
 └── README.md
 ```
 
-## Publishing to Packagist
 
-To make this package available via Composer:
-
-1. Create a repository on GitHub
-2. Push your code
-3. Create an account on [Packagist.org](https://packagist.org)
-4. Submit your package URL
-5. Users can install via: `composer require madarit/laravel-kashier`
 
 ## API Reference
 
