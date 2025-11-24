@@ -1,0 +1,35 @@
+{
+    "name": "madarit/laravel-kashier",
+    "description": "Laravel package for integrating Kashier payment gateway",
+    "keywords": ["laravel", "kashier", "payment", "gateway", "egypt"],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "MadarIT",
+            "email": "tarek@madar.it"
+        }
+    ],
+    "require": {
+        "php": "^8.0|^8.1|^8.2|^8.3",
+        "illuminate/support": "^9.0|^10.0|^11.0",
+        "illuminate/http": "^9.0|^10.0|^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Madarit\\LaravelKashier\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Madarit\\LaravelKashier\\KashierServiceProvider"
+            ],
+            "aliases": {
+                "Kashier": "Madarit\\LaravelKashier\\Facades\\Kashier"
+            }
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

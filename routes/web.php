@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\PaymentController;
+use Madarit\LaravelKashier\Http\Controllers\PaymentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -8,11 +8,11 @@ use Illuminate\Support\Facades\Route;
 | Kashier Payment Routes
 |--------------------------------------------------------------------------
 |
-| Add these routes to your existing routes/web.php file
+| These routes are automatically loaded by the package service provider
 |
 */
 
-Route::prefix('payment')->name('payment.')->group(function () {
+Route::prefix('kashier')->name('kashier.payment.')->group(function () {
     Route::get('/checkout', [PaymentController::class, 'checkout'])->name('checkout');
     Route::get('/iframe/callback', [PaymentController::class, 'iframeCallback'])->name('iframe.callback');
     Route::get('/hpp/callback', [PaymentController::class, 'hppCallback'])->name('hpp.callback');

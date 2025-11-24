@@ -1,43 +1,56 @@
 # Laravel Kashier Payment Integration
 
-This folder contains all the files needed to integrate Kashier payment gateway into your Laravel project.
+A Laravel package for integrating Kashier payment gateway into your Laravel application with ease.
 
-## Installation Steps
+## Features
 
-### 1. Copy Configuration File
-Copy `config/kashier.php` to your Laravel project's `config/` directory:
+- ✅ Easy installation via Composer
+- ✅ Auto-discovery for Laravel 5.5+
+- ✅ Support for both test and live modes
+- ✅ iFrame and Hosted Payment Page (HPP) integration
+- ✅ Automatic signature validation
+- ✅ Customizable views
+- ✅ Facade support for easy access
+
+## Requirements
+
+- PHP 8.0 or higher
+- Laravel 9.0, 10.0, or 11.0
+
+## Installation
+
+### 1. Install via Composer
+
 ```bash
-cp config/kashier.php /path/to/your/laravel/project/config/
+composer require madarit/laravel-kashier
 ```
 
-### 2. Copy Service Class
-Copy `app/Services/KashierService.php` to your Laravel project:
+The package will automatically register itself via Laravel's package auto-discovery.
+
+### 2. Publish Configuration
+
+Publish the configuration file to customize settings:
+
 ```bash
-cp app/Services/KashierService.php /path/to/your/laravel/project/app/Services/
+php artisan vendor:publish --tag=kashier-config
 ```
 
-If the `Services` directory doesn't exist, create it first:
+This will create `config/kashier.php` in your application.
+
+### 3. Publish Views (Optional)
+
+If you want to customize the payment views:
+
 ```bash
-mkdir -p /path/to/your/laravel/project/app/Services
+php artisan vendor:publish --tag=kashier-views
 ```
 
-### 3. Copy Controller
-Copy `app/Http/Controllers/PaymentController.php` to your Laravel project:
-```bash
-cp app/Http/Controllers/PaymentController.php /path/to/your/laravel/project/app/Http/Controllers/
-```
+Views will be published to `resources/views/vendor/kashier/`.
 
-### 4. Copy Views
-Copy all view files to your Laravel project:
-```bash
-cp -r resources/views/payment /path/to/your/laravel/project/resources/views/
-```
+### 4. Configure Environment Variables
 
-### 5. Add Routes
-Open the `routes/web.php` file and add the routes from `routes/web.php` to your Laravel project's routes file.
+Add the following to your `.env` file:
 
-### 6. Configure Environment Variables
-Add the following to your Laravel project's `.env` file:
 ```env
 KASHIER_MODE=test
 KASHIER_TEST_API_KEY=your-test-api-key
@@ -46,56 +59,159 @@ KASHIER_LIVE_API_KEY=
 KASHIER_LIVE_MID=
 ```
 
-Replace the test credentials with your actual Kashier test credentials from your merchant dashboard.
-
-### 7. Register Service Provider (Optional)
-If you want to use dependency injection, the service is automatically resolved by Laravel.
-You can also bind it in `app/Providers/AppServiceProvider.php`:
-
-```php
-use App\Services\KashierService;
-
-public function register()
-{
-    $this->app->singleton(KashierService::class, function ($app) {
-        return new KashierService();
-    });
-}
-```
+Replace the test credentials with your actual Kashier credentials from your merchant dashboard.
 
 ## Usage
 
-### Access Payment Page
-Navigate to: `http://your-laravel-app.test/payment/checkout`
+### Using the Facade
+
+```php
+use Madarit\LaravelKashier\Facades\Kashier;
+
+// Generate order hash
+$hash = Kashier::generateOrderHash($orderId, $amount, $currency);
+
+// Get HPP URL
+$hppUrl = Kashier::getHppUrl($orderId, $amount, $currency, $callbackUrl);
+
+// Validate callback signature
+$isValid = Kashier::validateSignature($request->all());
+
+// Get configuration
+$config = Kashier::getConfig();
+$mode = Kashier::getMode();
+$mid = Kashier::getMid();
+```
+
+### Using Dependency Injection
+
+```php
+use Madarit\LaravelKashier\KashierService;
+
+class YourController extends Controller
+{
+    private $kashier;
+
+    public function __construct(KashierService $kashier)
+    {
+        $this->kashier = $kashier;
+    }
+
+    public function processPayment()
+    {
+        $hash = $this->kashier->generateOrderHash('123', '100', 'EGP');
+        // ...
+    }
+}
+```
+
+### Default Routes
+
+The package automatically registers these routes:
+
+- `GET /kashier/checkout` - Display checkout page
+- `GET /kashier/iframe/callback` - iFrame payment callback
+- `GET /kashier/hpp/callback` - Hosted Payment Page callback
+
+### Accessing the Demo
+
+After installation, visit:
+
+```
+http://your-app.test/kashier/checkout
+```
 
 ### Test Cards
-- **Success:** 5111 1111 1111 1118 - 06/22 - 100
-- **Success 3D Secure:** 5123 4500 0000 0008 - 06/22 - 100
-- **Failure:** 5111 1111 1111 1118 - 05/20 - 102
 
-## File Structure
+- **Success:** 5111 1111 1111 1118 - 06/28 - 100
+- **Success 3D Secure:** 5123 4500 0000 0008 - 06/28 - 100
+- **Failure:** 5111 1111 1111 1118 - 05/28 - 102
+
+## Customization
+
+### Custom Views
+
+After publishing views, you can customize them in `resources/views/vendor/kashier/`:
+
+- `payment/checkout.blade.php` - Checkout page
+- `payment/success.blade.php` - Success page
+- `payment/error.blade.php` - Error page
+
+### Custom Controller
+
+You can create your own controller and use the KashierService:
+
+```php
+use Madarit\LaravelKashier\KashierService;
+use Illuminate\Http\Request;
+
+class CustomPaymentController extends Controller
+{
+    public function initiatePayment(KashierService $kashier)
+    {
+        $orderId = uniqid('order_');
+        $amount = '100.00';
+        $currency = 'EGP';
+        
+        $hppUrl = $kashier->getHppUrl(
+            $orderId, 
+            $amount, 
+            $currency, 
+            route('payment.callback')
+        );
+        
+        return redirect($hppUrl);
+    }
+    
+    public function handleCallback(Request $request, KashierService $kashier)
+    {
+        if ($kashier->validateSignature($request->all())) {
+            if ($request->get('paymentStatus') === 'SUCCESS') {
+                // Handle successful payment
+                return view('payment-success');
+            }
+        }
+        
+        return view('payment-failed');
+    }
+}
+```
+
+## Package Structure
 
 ```
 laravel-kashier/
+├── src/
+│   ├── Http/
+│   │   └── Controllers/
+│   │       └── PaymentController.php
+│   ├── Facades/
+│   │   └── Kashier.php
+│   ├── KashierService.php
+│   └── KashierServiceProvider.php
 ├── config/
-│   └── kashier.php                    # Configuration file
-├── app/
-│   ├── Services/
-│   │   └── KashierService.php         # Main service class
-│   └── Http/
-│       └── Controllers/
-│           └── PaymentController.php   # Payment controller
+│   └── kashier.php
 ├── resources/
 │   └── views/
 │       └── payment/
-│           ├── checkout.blade.php      # Checkout page
-│           ├── success.blade.php       # Success page
-│           └── error.blade.php         # Error page
+│           ├── checkout.blade.php
+│           ├── success.blade.php
+│           └── error.blade.php
 ├── routes/
-│   └── web.php                        # Routes to add
-├── .env.example                       # Environment variables example
-└── README.md                          # This file
+│   └── web.php
+├── composer.json
+└── README.md
 ```
+
+## Publishing to Packagist
+
+To make this package available via Composer:
+
+1. Create a repository on GitHub
+2. Push your code
+3. Create an account on [Packagist.org](https://packagist.org)
+4. Submit your package URL
+5. Users can install via: `composer require madarit/laravel-kashier`
 
 ## API Reference
 
@@ -160,6 +276,28 @@ For issues or questions:
 - Kashier Documentation: https://developers.kashier.io/
 - Kashier Support: Contact through merchant dashboard
 
+## About the Developer
+
+This package is developed and maintained by **Madar IT** - a software development company specializing in creating robust and scalable solutions for businesses.
+
+### Madar IT
+
+**Madar IT** provides professional software development services with expertise in:
+- Laravel & PHP Development
+- Payment Gateway Integration
+- API Development & Integration
+- Enterprise Application Development
+- Custom Software Solutions
+
+We are committed to delivering high-quality, secure, and well-documented packages that make developers' lives easier.
+
+### Connect With Us
+
+- **GitHub:** [github.com/madarit](https://github.com/madarit)
+- **Website:** Contact us for custom development and integration services
+
+For package-related issues, please open an issue on the GitHub repository. For custom development or integration services, feel free to reach out directly.
+
 ## License
 
-This integration code is provided as-is for use with Kashier payment gateway.
+The MIT License (MIT). Please see [License File](LICENSE) for more information.
